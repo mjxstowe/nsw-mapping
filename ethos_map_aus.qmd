@@ -1,0 +1,207 @@
+---
+project:
+  title: "Project title"
+  output-dir: reports
+format:
+  html:
+    theme:
+      - lumen
+      - assets/styles.scss
+    highlight-style: github
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    self-contained: true
+    code-tools: true
+    grid:
+      sidebar-width: 300px
+      body-width: 1000px
+      margin-width: 300px
+      gutter-width: 1.5rem
+---
+
+```{r setup, include=FALSE}
+
+# SETUP FORMATTING AND STRUCTURE
+
+if (is.null(knitr::pandoc_to())) {
+  fmt_out <- "interactive"
+} else {
+  fmt_out <- knitr::pandoc_to()
+}
+
+knitr::opts_chunk$set(
+  echo = FALSE, include = FALSE,
+  warning = FALSE, message = FALSE
+)
+
+knitr::opts_chunk$set(
+  fig.align = "center", fig.retina = 3,
+  fig.width = 6, fig.height = (6 * 0.618),
+  out.width = "100%", collapse = TRUE
+)
+
+options(
+  digits = 3, width = 120,
+  dplyr.summarise.inform = FALSE
+)
+
+
+library(RColorBrewer) 
+library(leaflet)
+library(leaflet.extras)
+library(sf)
+library(here)
+library(usethis)
+library(nswgeo)
+# library(aussiemaps)
+library(ozmaps)
+# library(straya)
+# library(absmaps)
+library(ggmap)
+library(ggplot2)
+library(pacman)
+library(dplyr)
+
+# LOAD DATASETS
+load(
+  here::here("analysis", "data", "processed_data", "ethos_all_factors.rda"))
+  
+  load(
+  here::here("analysis", "data", "processed_data", "ethos_all_factors.rda"))
+
+load(
+  here::here("analysis", "data", "processed_data", "ethos_final_analysis.rda"))
+
+shape <- read_sf(dsn = "analysis/data/raw_data", layer = "Primary_Health_Networks")%>%
+  sf::st_as_sf(coords = c("lat", "lon"), # columns with geometry
+               crs = 4326) 
+
+nsw_lhd <- read_sf(dsn = "analysis/data/raw_data", layer = "NSW_LHD_Boundaries")%>%
+  sf::st_as_sf(coords = c("lat", "lon"), # columns with geometry
+               crs = 4326) 
+
+aus_estuaries <- read_sf(dsn = "analysis/data/raw_data", layer = "estuaries_camris")
+
+
+ethos.loc <- read.csv("analysis/data/raw_data/ethos_locations.csv") %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), remove = FALSE)
+
+# GENERATE COLOUR PALETTE
+
+my.pal2 = brewer.pal(n=7, "GnBu")
+
+```
+
+```{r}
+library(fontawesome)
+
+icons <- awesomeIcons(
+  icon = 'ios-close',
+  iconColor = 'black',
+  library = 'ion',
+  markerColor = my.pal2
+)
+
+fish = makeAwesomeIcon(text = fa("fas fa-o"))
+
+
+
+nsw_map_ethos <- leaflet(nsw_lhd) %>%addPolygons(data = shape,
+              # weight defines how thick the borders will be for our boundaries 
+              # (the larger this number, the thicker the lines will become)
+              weight = 2, 
+              color = "black", 
+              dashArray = " ", # makes the boundary lines solid (by default)
+              # fillColor = ~pal(Secondary$latest_year_enrolment_FTE), 
+              smoothFactor = 0.5,
+              opacity = 0.6,
+              fillOpacity = 0.2,
+              label =  shape$PHN_Name,
+              # the boundary lines will turn thick red when we hover over it
+              highlightOptions = highlightOptions(color = "darkorange", 
+                                                  weight = 3, 
+                                                  bringToFront = TRUE))%>%
+  
+  addTiles() %>%
+  # addProviderTiles(providers$CartoDB.Positron)%>%
+   addProviderTiles(providers$Esri)%>%
+  enableMeasurePath() %>%
+  addMeasurePathToolbar(options = measurePathOptions(imperial = FALSE,
+                                                     minPixelDistance = 100,
+                                                     showDistances = FALSE,
+                                                     showOnHover = TRUE))%>%
+  
+  addPolygons(data = nsw_lhd,
+              # weight defines how thick the borders will be for our boundaries 
+              # (the larger this number, the thicker the lines will become)
+              weight = 2, 
+              color = "black", 
+              dashArray = " ", # makes the boundary lines solid (by default)
+              # fillColor = ~pal(Secondary$latest_year_enrolment_FTE), 
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 0.5,
+              label =  nsw_lhd$lhd_name,
+              # the boundary lines will turn thick red when we hover over it
+              highlightOptions = highlightOptions(color = "red", 
+                                                  weight = 3, 
+                                                  bringToFront = TRUE))%>%
+    addPolygons(data = shape,
+              # weight defines how thick the borders will be for our boundaries 
+              # (the larger this number, the thicker the lines will become)
+              weight = 2, 
+              color = "black", 
+              dashArray = " ", # makes the boundary lines solid (by default)
+              # fillColor = ~pal(Secondary$latest_year_enrolment_FTE), 
+              smoothFactor = 0.5,
+              opacity = 0.6,
+              fillOpacity = 0.2,
+              label =  shape$PHN_Name,
+              # the boundary lines will turn thick red when we hover over it
+              highlightOptions = highlightOptions(color = "darkorange", 
+                                                  weight = 3, 
+                                                  bringToFront = TRUE))%>%
+
+  addAwesomeMarkers(lat=ethos.loc$Latitude,
+                    lng=ethos.loc$Longitude, 
+                    label=ethos.loc$Site, 
+                    icon=fish,
+                    clusterOptions = markerClusterOptions())
+  #   addLegend(labels=ethos.loc$Site, values=ethos.loc, opacity=0.9, title = "Sampling locations", position = "bottomleft", colors=ethos.loc$Site, group = "circles") %>%
+  # addLayersControl(overlayGroups = c("circles"))
+
+
+esri <- grep("^Esri", providers, value = TRUE)
+
+for (provider in esri) {
+  nsw_map_ethos <- nsw_map_ethos %>% addProviderTiles(provider, group = provider)
+}
+
+nsw_map_ethos %>%
+  addLayersControl(baseGroups = names(esri),
+                   options = layersControlOptions(collapsed = TRUE)) %>%
+  addMiniMap(tiles = esri[[1]], toggleDisplay = TRUE,
+             position = "bottomleft") %>%
+  htmlwidgets::onRender("
+    function(el, x) {
+      var myMap = this;
+      myMap.on('baselayerchange',
+        function (e) {
+          myMap.minimap.changeLayer(L.tileLayer.provider(e.name));
+        })
+    }")
+
+nsw_map_ethos
+
+  
+# save the widget in a html file if needed.
+# library(htmlwidgets)
+saveWidget(nsw_map_ethos, file=paste0( getwd(), "/analysis/data/processed_data/aus_nsw_lhds.html"))
+# # saving the prepared leaflet plot as a html file
+htmltools::save_html(nsw_map_ethos, "ethos_map_aus.html")
+
+```
+
+
+  
