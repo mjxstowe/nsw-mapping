@@ -70,29 +70,18 @@ library(dplyr)
 # LOAD DATASETS -----------------------------------------------------------
 
 # Primary Health Networks 
-shape <- read_sf(dsn = "analysis/data/raw_data", layer = "Primary_Health_Networks")%>%
+shape <- read_sf(dsn = "raw_data", layer = "Primary_Health_Networks")%>%
   sf::st_as_sf(coords = c("lat", "lon"), # columns with geometry
                crs = 4326) 
 
 # NSW Local Health Districts (LHD)
-nsw_lhd <- read_sf(dsn = "analysis/data/raw_data", layer = "NSW_LHD_Boundaries")%>%
+nsw_lhd <- read_sf(dsn = "raw_data", layer = "NSW_LHD_Boundaries")%>%
   sf::st_as_sf(coords = c("lat", "lon"), # columns with geometry
                crs = 4326) 
 
 # Locations of participating sites 
-ethos.loc <- read.csv("analysis/data/raw_data/ethos_locations.csv") %>%
+ethos.loc <- read.csv("raw_data/ethos_locations.csv") %>%
   st_as_sf(coords = c("Longitude", "Latitude"), remove = FALSE)
-
-# Ignore this code below as it relates to another part of the project and I have just kept it here for convenience
-
-# load(
-#   here::here("analysis", "data", "processed_data", "ethos_all_factors.rda"))
-# 
-# load(
-#   here::here("analysis", "data", "processed_data", "ethos_final_analysis.rda"))
-
-
-
 ```
 
 ```{r}
