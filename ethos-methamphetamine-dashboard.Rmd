@@ -1,0 +1,395 @@
+---
+title: "Ethos Engage 
+Methamphetamine Use"
+output: 
+  flexdashboard::flex_dashboard:
+    # theme: journal
+    # source_code: embed
+    # orientation: columns
+    # theme: journal
+      # version: 4
+      # bootswatch: journal
+    # social: menu
+    # source_code: embed
+    # self_contained: TRUE
+---
+
+
+```{r}
+#| label: load-packages
+#| message: false
+
+library(flexdashboard)
+# Install thematic and un-comment for themed static plots (i.e., ggplot2)
+library(thematic)
+thematic::thematic_rmd()
+library(flexdashboard)
+library(tidyverse)
+library(readxl)
+library(scales)
+library(DT)
+library(gt)
+library(finalfit)
+library(dplyr)
+library(forcats)
+library(tidyr)
+library(ggplot2)
+library(here)
+library(RColorBrewer) 
+library(leaflet)
+library(leaflet.extras)
+library(sf)
+library(here)
+
+# if (FALSE) {
+
+library(rmarkdown)
+library(flexdashboard)
+
+# simple invocation
+# render("ethos-methamphetamine-dashboard.Rmd", flex_dashboard())
+
+# specify the theme option
+# render("ethos-methamphetamine-dashboard.Rmd", flex_dashboard(theme = "journal"))
+# }
+
+
+
+
+# you can get marmap from CRAN, but to get the latest brew, try github:
+# install.packages("promises")
+# install.packages("devtools") # just do this once
+# library(devtools) # load library devtools
+# install_github("ericpante/marmap@marmap-v0.9") # install from github
+
+# theme_set(theme_minimal(base_size = 24, base_family = "Atkinson Hyperlegible"))
+```
+
+#  {.sidebar}
+
+**Title:** Sociodemographic and behavioural characteristics associated with methamphetamine use among participants enrolled in ETHOS Engage.
+
+**Description:** Enhancing Treatment of Hepatitis C in Opioid Substitution Settings (ETHOS) Engage is a national observational cohort study of people who have a history of injecting drug use, and report injecting drug use in the preceding six months or are currently receiving OAT (comprising methadone, buprenorphine, and buprenorphine-naloxone in Australia) Participants were enrolled across two recruitment waves. During Wave 1 (May 2018- September 2019) recruitment occurred in 25 sites, including drug treatment clinics (n=21) and needle and syringe programs (NSPs) (n=4). During Wave 2 (November 2019-June 2021), participants were recruited from 21 of the 25 sites which participated in Wave 1, including drug treatment clinics (n=19) and NSPs (n=2) (Overall, 2,395 unique participants were enrolled: 1,443 participants enrolled during 2018-2019 (Wave 1) and 1,211 enrolled during 2019-2021 (Wave 2) (259 participated in b
+
+**Methods:** To be included in this analysis, participants had to report prescribed or non-prescribed opioid use in the preceding six months or have received OAT in the preceding six months. pioid use was defined as use of prescribed or non-prescribed opioids and/or extra-medical (injection and/or non-prescribed) use of methadone/buprenorphine. Stimulant use was defined as use of cocaine or amphetamines.
+
+**Study Oversight** The study protocol was approved by the Human Research Ethics Committees at St Vincent’s Hospital, Sydney, and the Aboriginal Health and Medical Research Council (HREC Ref: HREC/17/ SVH/113).
+
+::: {.callout-note collapse="true"}
+
+**Disclaimer**
+
+These data are not final and are not publicly available yet.
+
+:::
+
+<!-- ------------------------------------------------------------------------ -->
+# Map of sampling locations
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r load-libraries, include=FALSE}
+
+# LOAD LIBRARIES ----------------------------------------------------------
+library(RColorBrewer) 
+library(leaflet)
+library(leaflet.extras)
+library(sf)
+library(here)
+library(usethis)
+library(ggmap)
+library(ggplot2)
+library(pacman)
+library(dplyr)
+library(knitr)
+library(DT)
+library(viridis)
+library(ggplot2)
+library(reticulate)
+library(rmarkdown)
+library(flexdashboard)
+library(readxl)
+library(gt)
+library(gtsummary)
+library(flextable)
+library(sf)
+
+# my_packages <- c("tidyverse", "broom", "coefplot", "cowplot",
+#                  "gapminder", "GGally", "ggrepel", "ggridges", "gridExtra",
+#                  "here", "interplot", "margins", "maps", "mapproj",
+#                  "mapdata", "MASS", "quantreg", "rlang", "scales",
+#                  "survey", "srvyr", "viridis", "viridisLite", "devtools")
+# 
+# install.packages(my_packages, repos = "http://cran.rstudio.com")
+# devtools::install_github("kjhealy/socviz")
+
+# usethis::create_github_token()
+# 
+# gitcreds::gitcreds_set()
+
+```
+
+```{r load-data, include = FALSE}
+# LOAD DATASETS -----------------------------------------------------------
+
+load(
+  here::here("Data", "Processed", "ethos_all_factors.rda")
+)
+
+load(
+  here::here("Data", "Processed", "ethos_final_analysis.rda")
+)
+
+load(
+  here::here("Data", "Processed", "ethos_all_factors.rda")
+)
+
+# Primary Health Networks 
+shape <- read_sf(dsn = "C:/Users/Mjstowe/mjstowe-projects/ethos-stimulants/Data/Input", layer = "Primary_Health_Networks")
+
+# NSW Local Health Districts (LHD)
+nsw_lhd <- read_sf(dsn = "Data/Input", layer = "NSW_LHD_Boundaries")%>%
+  sf::st_as_sf(coords = c("lat", "lon"), # columns with geometry
+               crs = 4326) 
+
+# Locations of participating sites 
+ethos.loc <- read_csv("Data/Input/ethos_locations.csv") %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), remove = FALSE)
+```
+
+```{r, echo=FALSE}
+
+
+
+
+# shape <- shape %>%
+  # st_transform(crs = 4326)
+
+
+# ethos.loc <- read.csv("C:/Users/Mjstowe/OneDrive - UNSW/04_projects/04-archived/projects/ETHOS Engage/sub-studies/OAT preference/analysis/data/raw_data/ethos_locations.csv") %>%
+  # st_as_sf(coords = c("Longitude", "Latitude"), remove = FALSE)
+
+my.pal2 = brewer.pal(n=7, "GnBu")
+
+icons <- awesomeIcons(
+  icon = 'ios-close',
+  iconColor = 'black',
+  library = 'ion',
+  markerColor = my.pal2
+)
+
+
+l <- leaflet(shape) %>%
+  
+  addTiles() %>%
+  enableMeasurePath() %>%
+  addMeasurePathToolbar(options = measurePathOptions(imperial = FALSE,
+                                                     minPixelDistance = 100,
+                                                     showDistances = FALSE,
+                                                     showOnHover = TRUE))%>%
+  
+  # addPolygons(data = shape,
+  #             # weight defines how thick the borders will be for our boundaries 
+  #             # (the larger this number, the thicker the lines will become)
+  #             weight = 2, 
+  #             color = "black", 
+  #             dashArray = " ", # makes the boundary lines solid (by default)
+  #             # fillColor = ~pal(Secondary$latest_year_enrolment_FTE), 
+  #             smoothFactor = 0.5,
+  #             opacity = 1.0,
+  #             fillOpacity = 0.5,
+  #             # the boundary lines will turn thick red when we hover over it
+  #             highlightOptions = highlightOptions(color = "red", 
+  #                                                 weight = 3, 
+  #                                                 bringToFront = TRUE))%>%
+  addAwesomeMarkers(lat=ethos.loc$Latitude,
+                    lng=ethos.loc$Longitude, 
+                    label=ethos.loc$Site, 
+                    icon=icons,
+                    clusterOptions = markerClusterOptions()) 
+    # addLegend(labels=ethos.loc$Site, values=ethos.loc, opacity=0.9, title = "Sampling locations", position = "bottomleft", colors=ethos.loc$Site)
+
+
+esri <- grep("^Esri", providers, value = TRUE)
+
+for (provider in esri) {
+  l <- l %>% addProviderTiles(provider, group = provider)
+}
+
+l %>%
+  addLayersControl(baseGroups = names(esri),
+                   options = layersControlOptions(collapsed = TRUE)) %>%
+  addMiniMap(tiles = esri[[1]], toggleDisplay = TRUE,
+             position = "bottomleft") %>%
+  
+    # add scale bar
+  # addMeasure(position = "topright",
+  #            primaryLengthUnit = "meters",
+  #            primaryAreaUnit = "sqmeters",
+  #            activeColor = "#3D535D",
+  #            completedColor = "#7D4479") %>%
+  
+  htmlwidgets::onRender("
+    function(el, x) {
+      var myMap = this;
+      myMap.on('baselayerchange',
+        function (e) {
+          myMap.minimap.changeLayer(L.tileLayer.provider(e.name));
+        })
+    }")
+
+# l
+
+  
+# save the widget in a html file if needed.
+# library(htmlwidgets)
+# saveWidget(l, file=paste0( getwd(), "/HtmlWidget/choroplethLeaflet5.html"))
+
+```
+
+
+# Summary statistics
+
+```{r, echo=FALSE}
+
+
+data <- data %>%
+  mutate(meth_roa = fct_relevel(meth_roa, "Inject methamphetamine", "Smoke methamphetamine", "Don't use methamphetamine"))
+
+
+summary_pts <-
+  data %>%
+  # filter(prefer.treat.yn=="Yes" | prefer.treat.yn=="No")%>%
+  # filter(inclusion==1)%>%
+  tbl_summary(by=meth_roa, include = c(waves, surveyage, age_group, age_45, 
+                          genderall.factor, indigenous,  homeless.fct,  year10,
+                          prison.6month, income,hazard_alc, drug_injected_1m, 
+                          heroin_inj, heroin_noninj, methadone_inj,
+                          methadone_noninj, bupe_inj,
+                          bupe_noninj, otheropi_inj,
+                          otheropi_noninj, morph_inj,
+                          morph_noninj, fent_inj,
+                          fent_noninj, amphet_inj,
+                          amphet_noninj, coke_inj,
+                          coke_noninj, benzo_inj,
+                          benzo_noninj,drug_injected_1m, injectdrug.month,
+                          injectdrug.group.month,injectfreq.month, 
+                          injectfreq.month.daily,injectdays.month,oat_current.yn,oat.ever.yn,    
+                          oat_history, oatdur, dose.satisfied, dose.takeaways.yn,
+                           overdoseopi_12m,naloxone_train, naloxone_access,
+                          hcvab_status, health.pain, hcvrna_tested, hcv_ever_treat, hcv_testresult,
+                          hcvrna_current,hcvab_status, 
+                          health.pain,stigma.inject.yn,  stigma.inject, stigma.hcv, stigma.hcv.yn,
+                          discrim, discrim.yn, 
+                          oat.ever.yn,  site_name, aria.x, state),
+  # type = all_categorical() ~ "categorical",
+label =
+                list(state ~"State",
+                     surveyage ~ "Age",
+                     year10 ~ "Level of formal education",
+                     age_group ~ "Age group",
+                     injectdrug.group.month ~ "Drug class injected in the last month",
+                     injectdays.month ~ "Number of days injected in the last month"
+                     ),
+              type = all_categorical()~"categorical",
+              missing = "no",
+              percent = "row",
+              statistic =(all_continuous()  ~ "{median} ({p25} - {p75})"))%>%
+  add_stat_label()%>%
+  add_overall(statistic = list(all_continuous()  ~ "{median} ({p25} - {p75})",
+                               all_categorical() ~ "{n}")) %>%
+  modify_footnote(update = everything() ~ NA, abbreviation = FALSE) %>%
+  modify_header(
+    stat_0 = '**Overall** \n **(n = {n})**',
+    stat_1 = '**Inject methamphetamine** \n **(n = {n})**',
+    stat_2 = '**Smoke methamphetamine** \n **(n = {n})**',
+    stat_3 = '**Do not use methamphetamine** \n **(n = {n})**'
+  ) %>%
+    # remove_row_type(variable = injectdrug.group.month,
+    #               type = "level", level_value = "Other")%>%
+  bold_labels()
+
+summary_pts.kable <- summary_pts %>%
+   gtsummary::as_kable_extra(
+    format = "html",
+    booktabs = TRUE,
+    longtable = TRUE,
+    linesep = "",
+    caption="Table 1. Demographic and behavioural characteristics of all participants enrolled in this study stratified by injecting, smoking and none use of methamphetamine across Waves I & II of ETHOS Engage")%>%
+  kableExtra::kable_styling(
+      position = "left",
+      latex_options = c("striped", "repeat_header"),
+      stripe_color = "gray!15"
+    )%>%
+    kableExtra::scroll_box(
+  # height = "50%",
+  # width = "100%",
+  box_css = "border: 1px solid #ddd; padding: 5px; ",
+  extra_css = NULL,
+  fixed_thead = TRUE
+)
+
+
+summary_pts.kable
+
+```
+
+# Data dictionary and summary
+
+```{r, warning="false", message="false", include="FALSE"}
+#| title: Table 1. Dataset of people who inject, smoke or do not use methamphetamine enrolled across both waves.
+#| echo: false
+#| include: true
+
+
+
+library(qreport)
+library(summarytools)
+# 
+# dataOverview(data)
+
+methamphetamine_dataset <- data %>%
+  filter(inclusion==1)%>%
+  dplyr::select(prefer.treat.yn:hcvrna_current)
+
+
+```
+
+
+```{r summary, results='asis'}
+print(dfSummary(methamphetamine_dataset
+                ), method = 'render')
+```
+
+<!-- # Dataset -->
+
+```{r}
+
+# 
+# font.size <- "10pt"
+# 
+# table <- methamphetamine_dataset|>
+#   arrange(methamphetamine_dataset) |>
+#   DT::datatable(
+#     options = list(
+#       initComplete = htmlwidgets::JS(
+#           "function(settings, json) {",
+#           paste0("$(this.api().table().container()).css({'font-size': '", font.size, "'});"),
+#           "}"),
+#       dom = "lrtip",
+#       paging = TRUE,
+#       buttons=c("copy","print","pdf","csv"),
+#       # lengthMenu = c(20, 100, 175),
+#       # pageLength = 10,
+#       scrollY = TRUE),
+#       filter="top",
+#     rownames=TRUE,
+#     caption="Table: Dataset of people who inject or smoke, or don't use methamphetamine across Wave I & II of ETHOS Engage"
+#   )
+# 
+# table
+```
